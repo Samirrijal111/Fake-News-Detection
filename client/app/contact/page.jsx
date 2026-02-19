@@ -13,8 +13,8 @@ const CONTACT_LINKS = [
   {
     icon: Mail,
     label: "Email",
-    value: "samir.rijal@example.com",
-    href: "mailto:samir.rijal@example.com",
+    value: "shamrizal100@gmail.com",
+    href: "mailto:shamrizal100@gmail.com",
     description: "Send me an email anytime",
     color: "text-blue-400",
     bg: "bg-blue-500/10",
@@ -24,8 +24,8 @@ const CONTACT_LINKS = [
   {
     icon: Phone,
     label: "Phone",
-    value: "+977-98XXXXXXXX",
-    href: "tel:+97798XXXXXXXX",
+    value: "+977-9816338276",
+    href: "tel:+9779816338276",
     description: "Available Mon–Fri, 9am–6pm",
     color: "text-emerald-400",
     bg: "bg-emerald-500/10",
@@ -57,8 +57,8 @@ const CONTACT_LINKS = [
   {
     icon: Facebook,
     label: "Facebook",
-    value: "facebook.com/samirrijal",
-    href: "https://facebook.com/samirrijal",
+    value: "facebook.com/samir.rijal.899474",
+    href: "https://www.facebook.com/samir.rijal.899474",
     description: "Follow me on Facebook",
     color: "text-indigo-400",
     bg: "bg-indigo-500/10",
@@ -69,7 +69,7 @@ const CONTACT_LINKS = [
     icon: MapPin,
     label: "Location",
     value: "Kathmandu, Nepal",
-    href: "https://maps.google.com/?q=Kathmandu,Nepal",
+    href: "https://www.google.com/maps/place/Jorpati,+44600/@27.7256053,85.3595314,14z/data=!3m1!4b1!4m6!3m5!1s0x39eb1bbeb021a8c3:0xf5da322eefd636cd!8m2!3d27.7278388!4d85.3782068!16s%2Fm%2F04jl70j?authuser=0&entry=ttu&g_ep=EgoyMDI2MDIxNy4wIKXMDSoASAFQAw%3D%3D",
     description: "Nepal Standard Time (UTC+5:45)",
     color: "text-rose-400",
     bg: "bg-rose-500/10",
@@ -154,19 +154,6 @@ export default function ContactPage() {
                 </a>
               ),
             )}
-          </div>
-        </div>
-
-        {/* ── Availability badge ── */}
-        <div className="mt-12 flex justify-center">
-          <div className="inline-flex items-center gap-3 px-5 py-3 rounded-full border border-emerald-500/20 bg-emerald-500/5">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400" />
-            </span>
-            <span className="text-emerald-400 text-sm font-medium">
-              Available for freelance &amp; collaboration
-            </span>
           </div>
         </div>
 
