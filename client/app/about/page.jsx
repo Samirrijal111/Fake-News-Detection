@@ -212,12 +212,12 @@ export default function AboutPage() {
                     {
                       icon: Linkedin,
                       label: "LinkedIn",
-                      href: "https://linkedin.com",
+                      href: "https://www.linkedin.com/in/samir-rijal-0b155234b/",
                     },
                     {
                       icon: Mail,
                       label: "Email",
-                      href: "mailto:samir@example.com",
+                      href: "mailto:shamrizal100@gmail.com",
                     },
                   ].map(({ icon: Icon, label, href }) => (
                     <a

@@ -35,8 +35,8 @@ const CONTACT_LINKS = [
   {
     icon: Github,
     label: "GitHub",
-    value: "github.com/samirrijal",
-    href: "https://github.com/samirrijal",
+    value: "github.com/Samirrijal111",
+    href: "https://github.com/Samirrijal111",
     description: "Check out my projects",
     color: "text-slate-300",
     bg: "bg-white/5",
@@ -46,8 +46,8 @@ const CONTACT_LINKS = [
   {
     icon: Linkedin,
     label: "LinkedIn",
-    value: "linkedin.com/in/samirrijal",
-    href: "https://linkedin.com/in/samirrijal",
+    value: "linkedin.com/in/samir-rijal-0b155234b/",
+    href: "https://www.linkedin.com/in/samir-rijal-0b155234b/",
     description: "Let's connect professionally",
     color: "text-sky-400",
     bg: "bg-sky-500/10",
