@@ -207,7 +207,7 @@ export default function AboutPage() {
                     {
                       icon: Github,
                       label: "GitHub",
-                      href: "https://github.com",
+                      href: "https://github.com/Samirrijal111",
                     },
                     {
                       icon: Linkedin,
