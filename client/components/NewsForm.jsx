@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ShieldCheck,
   ShieldX,
@@ -8,6 +8,26 @@ import {
   AlertCircle,
   Sparkles,
 } from "lucide-react";
+
+const MIN_LOADING_MS = 10000;
+const LOADING_STAGES = [
+  {
+    label: "Clean",
+    detail: "Parsing and cleaning article text",
+  },
+  {
+    label: "Linguistics",
+    detail: "Detecting manipulation and clickbait signals",
+  },
+  {
+    label: "Reasoning",
+    detail: "Cross-checking plausibility and context",
+  },
+  {
+    label: "Scoring",
+    detail: "Finalizing authenticity score",
+  },
+];
 
 const RESULT_CONFIG = {
   FAKE: {
@@ -24,7 +44,7 @@ const RESULT_CONFIG = {
     glow: "shadow-red-900/20",
   },
   REAL: {
-    label: "Legitimate News",
+    label: "News",
     description:
       "Our AI analysis suggests this article appears to be credible and factually consistent.",
     icon: ShieldCheck,
@@ -40,9 +60,28 @@ const RESULT_CONFIG = {
 
 export default function NewsForm() {
   const [newsText, setNewsText] = useState("");
-  const [result, setResult] = useState(null); // "FAKE" | "REAL" | null
+  const [result, setResult] = useState(null); // { predicted_label, confidence_score, class_probabilities } | null
   const [loading, setLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!loading) {
+      setLoadingProgress(0);
+      return;
+    }
+
+    const startedAt = Date.now();
+    const intervalId = setInterval(() => {
+      const elapsed = Date.now() - startedAt;
+      const linearProgress = Math.min(1, elapsed / MIN_LOADING_MS);
+      const easedProgress = 1 - (1 - linearProgress) ** 1.35;
+      const nextProgress = Math.min(100, easedProgress * 100);
+      setLoadingProgress(nextProgress);
+    }, 80);
+
+    return () => clearInterval(intervalId);
+  }, [loading]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -60,8 +99,12 @@ export default function NewsForm() {
     }
 
     setLoading(true);
+    const minLoadingPromise = new Promise((resolve) =>
+      setTimeout(resolve, MIN_LOADING_MS),
+    );
+
     try {
-      const res = await fetch("http://127.0.0.1:8000/predict", {
+      const res = await fetch("https://prothalloid-jon-fragmentally.ngrok-free.dev/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: newsText }),
@@ -70,14 +113,28 @@ export default function NewsForm() {
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
 
       const data = await res.json();
-      const prediction = data.prediction?.toUpperCase();
+      const prediction = data.predicted_label?.toUpperCase();
+      const confidence = Number(data.confidence_score);
+      const probabilities = data.class_probabilities;
 
       if (prediction !== "FAKE" && prediction !== "REAL") {
         throw new Error("Unexpected response from server.");
       }
 
-      setResult(prediction);
+      if (Number.isNaN(confidence) || typeof probabilities !== "object" || !probabilities) {
+        throw new Error("Unexpected score payload from server.");
+      }
+
+      await minLoadingPromise;
+
+      setResult({
+        predicted_label: prediction,
+        confidence_score: confidence,
+        class_probabilities: probabilities,
+      });
     } catch (err) {
+      await minLoadingPromise;
+
       if (err.message.includes("fetch")) {
         setError(
           "Unable to reach the server. Make sure your backend is running on port 8000.",
@@ -86,6 +143,7 @@ export default function NewsForm() {
         setError(err.message || "Something went wrong. Please try again.");
       }
     } finally {
+      setLoadingProgress(100);
       setLoading(false);
     }
   };
@@ -96,9 +154,15 @@ export default function NewsForm() {
     setError("");
   };
 
-  const config = result ? RESULT_CONFIG[result] : null;
+  const config = result ? RESULT_CONFIG[result.predicted_label] : null;
   const charCount = newsText.length;
   const wordCount = newsText.trim() ? newsText.trim().split(/\s+/).length : 0;
+  const activeStageIndex = Math.min(
+    LOADING_STAGES.length - 1,
+    Math.floor((loadingProgress / 100) * LOADING_STAGES.length),
+  );
+  const activeStage = LOADING_STAGES[activeStageIndex];
+  const visualProgress = loading ? Math.max(6, loadingProgress) : loadingProgress;
 
   return (
     <section className="relative w-full flex items-center justify-center bg-[#080e1c] py-20 px-4 sm:px-6 lg:px-8">
@@ -230,29 +294,51 @@ export default function NewsForm() {
                 <span
                   className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${config.badgeBg} ${config.badgeText} ${config.badgeBorder}`}
                 >
-                  {result}
+                  {result.predicted_label}
                 </span>
               </div>
               <p className="text-slate-400 text-sm leading-relaxed">
                 {config.description}
               </p>
+              <div className="mt-3 text-xs text-slate-300 space-y-1">
+                <p>Confidence: {(result.confidence_score * 100).toFixed(2)}%</p>
+                <p>
+                  Probabilities: FAKE {((result.class_probabilities?.FAKE ?? 0) * 100).toFixed(2)}% | REAL {((result.class_probabilities?.REAL ?? 0) * 100).toFixed(2)}%
+                </p>
+              </div>
             </div>
           </div>
         )}
 
         {/* Loading state card */}
         {loading && (
-          <div className="mt-5 rounded-2xl border border-blue-500/20 bg-blue-500/5 p-6 flex items-center gap-4">
-            <div className="flex-shrink-0 p-2.5 rounded-xl bg-blue-500/15 border border-blue-500/25">
+          <div className="mt-5 rounded-2xl border border-cyan-400/20 bg-gradient-to-br from-slate-900/90 to-blue-950/40 p-6 shadow-2xl shadow-blue-950/30">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 p-2.5 rounded-xl bg-cyan-400/10 border border-cyan-300/25">
               <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
-            </div>
-            <div>
-              <p className="text-white font-semibold text-sm mb-0.5">
-                Analyzing article...
-              </p>
-              <p className="text-slate-500 text-xs">
-                Our AI is scanning the content for signs of misinformation.
-              </p>
+              </div>
+              <div className="flex-1">
+                <p className="text-white font-semibold text-sm mb-1">
+                  Running multi-pass verification
+                </p>
+                <p className="text-cyan-100/80 text-xs">
+                  {activeStage.detail}
+                </p>
+
+                <div className="mt-4 h-2 w-full rounded-full bg-slate-800/80 overflow-hidden border border-cyan-300/20">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-500 transition-[width] duration-300 ease-out"
+                    style={{ width: `${visualProgress}%` }}
+                  />
+                </div>
+
+                <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
+                  <span>{activeStage.label}</span>
+                  <span>{Math.round(loadingProgress)}%</span>
+                </div>
+
+                
+              </div>
             </div>
           </div>
         )}
