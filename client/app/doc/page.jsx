@@ -747,7 +747,7 @@ export default function DocPage() {
 
         {/* Footer */}
         <p className="text-center text-slate-700 text-xs mt-8">
-          Samir Rijal · LC00017002045 · Bachelor of Information Technology · Feb
+          Samir Rijal · LC00017002075 · Bachelor of Information Technology · Feb
           2026
         </p>
       </div>
