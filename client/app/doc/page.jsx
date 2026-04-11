@@ -492,7 +492,8 @@ export default function DocPage() {
               "Lucide React",
               "Vercel",
               "Heroku",
-              "Javascript React",
+              "Javascript",
+              "React",
             ].map((t) => (
               <Pill key={t}>{t}</Pill>
             ))}
