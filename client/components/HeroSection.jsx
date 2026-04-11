@@ -121,8 +121,8 @@ export default function HeroSection() {
         >
           {[
             { value: "99.2%", label: "Detection Accuracy" },
-            { value: "<2s", label: "Analysis Speed" },
-            { value: "10M+", label: "Articles Checked" },
+            { value: "<10s", label: "Analysis Speed" },
+            { value: "10k+", label: "Articles Checked" },
           ].map(({ value, label }) => (
             <div key={label} className="flex flex-col items-center gap-0.5">
               <span className="text-white font-bold text-lg">{value}</span>
