@@ -221,7 +221,7 @@ export default function DocPage() {
                 ["Student ID", "LC00017002045"],
                 ["Program", "Bachelor of Information Technology"],
                 ["Faculty", "Faculty of Computer Science and Multimedia"],
-                ["Submission Date", "Feb 17, 2026"],
+                ["Submission Date", "April 11, 2026"],
               ].map(([key, val]) => (
                 <div key={key} className="col-span-2 sm:col-span-1">
                   <span className="text-slate-600 text-xs">{key}</span>
