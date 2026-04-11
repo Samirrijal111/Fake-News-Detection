@@ -170,7 +170,7 @@ export default function AboutPage() {
                   Samir Rijal
                 </h3>
                 <p className="text-blue-400 font-medium text-sm mb-4">
-                  Full Stack &amp; ML Developer
+                  Student
                 </p>
                 <p className="text-slate-400 text-sm leading-relaxed mb-6 max-w-lg">
                   Passionate about building intelligent web applications that
@@ -191,6 +191,8 @@ export default function AboutPage() {
                     "Scikit-learn",
                     "Tailwind CSS",
                     "NLP",
+                    "Vercel",
+                    "Heroku",
                   ].map((tag) => (
                     <span
                       key={tag}
