@@ -5,12 +5,53 @@ import pickle
 import re
 from typing import Any, Literal
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import joblib
 from pydantic import BaseModel, Field
 
-app = FastAPI(title="Fake News Detection API", version="1.0.0")
+model: Any | None = None
+vectorizer: Any | None = None
+
+BASE_DIR = Path(__file__).resolve().parent
+MODEL_CANDIDATES = [
+    BASE_DIR / "model" / "model.joblib",
+    BASE_DIR / "model.joblib",
+]
+VECTORIZER_CANDIDATES = [
+    BASE_DIR / "model" / "vectorizer.joblib",
+    BASE_DIR / "vectorizer.joblib",
+]
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global model, vectorizer
+    try:
+        model_path = _find_existing_path(MODEL_CANDIDATES)
+        vectorizer_path = _find_existing_path(VECTORIZER_CANDIDATES)
+
+        if model_path is None or vectorizer_path is None:
+            model = None
+            vectorizer = None
+            print("Model/vectorizer not found. Running in reasoning-only mode.")
+        else:
+            model = _load_pickle(model_path)
+            vectorizer = _load_pickle(vectorizer_path)
+
+            print(f"Model loaded: {model_path}")
+            print(f"Vectorizer loaded: {vectorizer_path}")
+
+    except Exception as e:
+        model = None
+        vectorizer = None
+        print(f"Error loading model/vectorizer: {e}. Falling back to reasoning-only mode.")
+    
+    yield
+    model = None
+    vectorizer = None
+
+app = FastAPI(title="Fake News Detection API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,16 +60,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-model: Any | None = None
-vectorizer: Any | None = None
-
-BASE_DIR = Path(__file__).resolve().parent
-MODEL_CANDIDATES = [BASE_DIR / "model" / "model.pkl", BASE_DIR / "model.pkl"]
-VECTORIZER_CANDIDATES = [
-    BASE_DIR / "model" / "vectorizer.pkl",
-    BASE_DIR / "vectorizer.pkl",
-]
 
 
 class NewsRequest(BaseModel):
@@ -131,30 +162,23 @@ def _extract_entities(original_text: str) -> dict[str, list[str]]:
     proper_nouns = re.findall(r"\b[A-Z][a-z]{2,}\b", original_text)
 
     institution_terms = [
-        "government",
-        "ministry",
-        "department",
-        "agency",
-        "court",
-        "senate",
-        "congress",
-        "white house",
-        "nasa",
-        "who",
-        "united nations",
-        "reuters",
-        "bbc",
-        "associated press",
-        "ap",
+        "government", "ministry", "department", "agency", "court",
+        "senate", "congress", "white house", "nasa", "who",
+        "united nations", "reuters", "bbc", "associated press", "ap",
+        "military", "parliament", "police", "idf", "hezbollah", "hamas",
+        "pentagon", "eu", "nato", "president", "prime minister",
+        "supreme court", "wall street journal", "new york times",
+        "washington post", "al jazeera", "bloomberg", "authority",
+        "authorities"
     ]
 
     lower_text = original_text.lower()
-    institutions = [term for term in institution_terms if term in lower_text]
+    institutions = [term for term in institution_terms if re.search(rf"\b{term}\b", lower_text)]
 
     return {
         "numbers": numbers[:5],
-        "proper_nouns": proper_nouns[:6],
-        "institutions": institutions[:5],
+        "proper_nouns": proper_nouns[:8],
+        "institutions": institutions[:8],
     }
 
 
@@ -164,58 +188,29 @@ def _linguistic_analysis(original_text: str, cleaned_text: str) -> tuple[list[st
     real_boost = 0.0
 
     clickbait_terms = {
-        "shocking",
-        "you won t believe",
-        "secret revealed",
-        "bombshell",
-        "hidden truth",
-        "they don t want you to know",
-        "mainstream media won t show",
-        "miracle cure",
-        "exposed",
+        "shocking", "you won t believe", "secret revealed", "bombshell", 
+        "hidden truth", "they don t want you to know", "mainstream media won t show", 
+        "miracle cure", "exposed"
     }
 
     emotional_terms = {
-        "outrage",
-        "terrifying",
-        "horrifying",
-        "panic",
-        "furious",
-        "massive cover up",
+        "outrage", "terrifying", "horrifying", "panic", "furious", 
+        "massive cover up", "blatant violation", "lacking decision"
     }
 
     absolute_terms = {
-        "always",
-        "never",
-        "everyone",
-        "nobody",
-        "guaranteed",
-        "proves once and for all",
+        "always", "never", "everyone", "nobody", "guaranteed", "proves once and for all"
     }
 
     weak_source_terms = {
-        "anonymous insider",
-        "anonymous insiders",
-        "sources say",
-        "rumors suggest",
-        "people are saying",
-        "unverified reports",
-        "many claim",
-        "it is believed",
+        "anonymous insider", "anonymous insiders", "sources say", "rumors suggest", 
+        "people are saying", "unverified reports", "many claim", "it is believed"
     }
 
     strong_source_terms = {
-        "according to an official statement",
-        "according to the department",
-        "according to the ministry",
-        "according to the agency",
-        "official statement",
-        "press release",
-        "stated that",
-        "announced on",
-        "reported by reuters",
-        "reported by ap",
-        "reported by bbc",
+        "according to", "in a statement", "official statement", 
+        "press release", "stated that", "announced on", "reported by", 
+        "broadcast by", "spokesperson", "confirmed that"
     }
 
     lower_text = cleaned_text
@@ -246,16 +241,16 @@ def _linguistic_analysis(original_text: str, cleaned_text: str) -> tuple[list[st
         fake_boost += 0.05
 
     if any(term in lower_text for term in strong_source_terms) or re.search(
-        r"\b(according to|reported by|confirmed by|official statement)\b", lower_text
+        r"\b(according to|reported by|confirmed by|official statement|in a statement|broadcast by)\b", lower_text
     ):
         flags.append("source_reference_pattern")
         real_boost += 0.08
 
     if re.search(
-        r"\b(announced|stated|said|reported|released|invest|funding|initiative|policy|program)\b",
+        r"\b(announced|stated|said|reported|released|invest|funding|initiative|policy|program|negotiation|diplomacy|ceasefire|election|summit|legislation)\b",
         lower_text,
     ):
-        real_boost += 0.04
+        real_boost += 0.06
 
     return flags, fake_boost, real_boost
 
@@ -381,9 +376,14 @@ def _hybrid_detect(original_text: str) -> PredictionResponse:
         final_probs = heuristic_probs
         credibility = "Model unavailable; classification driven by linguistic and reasoning signals."
     else:
-        if structured_real_signals >= 2:
-            ml_weight = 0.55
-            heuristic_weight = 0.45
+        # Dramatically heavily favor heuristics for very structured real-world data format
+        if structured_real_signals >= 3:
+            ml_weight = 0.20
+            heuristic_weight = 0.80
+            heuristic_probs["REAL"] += 0.08  # Ultimate news trust boost
+        elif structured_real_signals >= 2:
+            ml_weight = 0.35
+            heuristic_weight = 0.65
         else:
             ml_weight = 0.65
             heuristic_weight = 0.35
@@ -394,7 +394,7 @@ def _hybrid_detect(original_text: str) -> PredictionResponse:
                 "REAL": (ml_weight * ml_probs["REAL"]) + (heuristic_weight * heuristic_probs["REAL"]),
             }
         )
-        credibility = "Hybrid score combined ML prediction with linguistic and plausibility checks."
+        credibility = f"Hybrid logic utilized (ML Weight: {ml_weight*100}%, Heuristics: {heuristic_weight*100}%)."
 
     fake_score = final_probs["FAKE"]
     real_score = final_probs["REAL"]
@@ -438,30 +438,7 @@ def _hybrid_detect(original_text: str) -> PredictionResponse:
     )
 
 
-@app.on_event("startup")
-def load_artifacts():
-    global model, vectorizer
 
-    try:
-        model_path = _find_existing_path(MODEL_CANDIDATES)
-        vectorizer_path = _find_existing_path(VECTORIZER_CANDIDATES)
-
-        if model_path is None or vectorizer_path is None:
-            model = None
-            vectorizer = None
-            print("Model/vectorizer not found. Running in reasoning-only mode.")
-            return
-
-        model = _load_pickle(model_path)
-        vectorizer = _load_pickle(vectorizer_path)
-
-        print(f"Model loaded: {model_path}")
-        print(f"Vectorizer loaded: {vectorizer_path}")
-
-    except Exception as e:
-        model = None
-        vectorizer = None
-        print(f"Error loading model/vectorizer: {e}. Falling back to reasoning-only mode.")
 
 
 @app.get("/")
