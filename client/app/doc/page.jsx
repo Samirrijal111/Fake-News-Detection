@@ -491,6 +491,8 @@ export default function DocPage() {
               "Tailwind CSS",
               "Lucide React",
               "Vercel",
+              "Heroku",
+              "Javascript React",
             ].map((t) => (
               <Pill key={t}>{t}</Pill>
             ))}
