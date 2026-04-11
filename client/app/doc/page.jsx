@@ -217,7 +217,7 @@ export default function DocPage() {
             <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
               {[
                 ["Name", "Samir Rijal"],
-                ["Section", "B"],
+                ["Section", "A"],
                 ["Student ID", "LC00017002045"],
                 ["Program", "Bachelor of Information Technology"],
                 ["Faculty", "Faculty of Computer Science and Multimedia"],
